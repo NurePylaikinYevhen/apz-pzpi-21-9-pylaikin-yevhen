@@ -62,7 +62,7 @@ def calculate_productivity(temperature, humidity, co2, config):
     if co2 <= co2_ideal:
         co2_score = 1
     else:
-        co2_score = 1 - math.log(1 + (co2 - co2_ideal) / (co2_max - co2_ideal)) / math.log(2)
+        co2_score = 1 - math.log(1 + (co2 - co2_ideal) / (co2_max - co2_ideal)) / math.log(3)
 
     scores = {
         "Temperature": temperature_score,
@@ -88,3 +88,4 @@ print(calculate_productivity(23, 50, 600, config))
 print(calculate_productivity(33, 45, 500, config))
 print(calculate_productivity(35, 90, 500, config))
 print(calculate_productivity(42, 45, 500, config))
+print(calculate_productivity(21, 55, 1200, config))
