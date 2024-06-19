@@ -13,5 +13,8 @@
         "Temperature": 40,
         "Humidity": 95,
         "CO2": 1700
+    },
+    "monitoring_settings": {
+        "Interval": 300
     }
 }
