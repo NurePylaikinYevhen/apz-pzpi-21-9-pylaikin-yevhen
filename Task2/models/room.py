@@ -3,7 +3,7 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 
-from Task2.get_db import Base
+from get_db import Base
 
 
 class Room(Base):

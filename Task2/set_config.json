@@ -1,4 +1,5 @@
 {
+  "5": {
     "ideal_values": {
         "Temperature": 22,
         "Humidity": 45,
@@ -10,11 +11,13 @@
         "CO2": 0
     },
     "max_values": {
-        "Temperature": 40,
-        "Humidity": 95,
-        "CO2": 1700
+        "Temperature": 29,
+        "Humidity": 80,
+        "CO2": 1000
     },
     "monitoring_settings": {
-        "Interval": 300
-    }
+      "Interval": 0
+    },
+    "productivity_norm": 80
+  }
 }

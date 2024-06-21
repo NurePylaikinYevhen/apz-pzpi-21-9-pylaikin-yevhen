@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional, re
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 
 class MeasurementRead(BaseModel):
@@ -12,7 +12,7 @@ class MeasurementRead(BaseModel):
     timestamp: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ConfigRead(BaseModel):
@@ -20,19 +20,26 @@ class ConfigRead(BaseModel):
     config_data: dict
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class DeviceRead(BaseModel):
     id: int
     mac_address: str
-    room_id: int
+    room_id: Optional[int]
     measurements: List[MeasurementRead] = []
     configs: List[ConfigRead] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class DeviceCreate(BaseModel):
     mac_address: str
+
+    @validator('mac_address')
+    def validate_mac_address(cls, v):
+        mac_validate = re.compile(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$')
+        if not mac_validate.match(v):
+            raise ValueError(f'Некоректний формат MAC-адреси: {v}')
+        return v

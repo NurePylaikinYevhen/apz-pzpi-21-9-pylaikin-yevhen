@@ -1,12 +1,15 @@
 import json
+from typing import List, Dict
+
+from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 
-from Task2.models.esp import Esp
-from Task2.models.measurement import Measurement
-from Task2.sсhemas.device import DeviceCreate, DeviceRead
+from models.esp import Device
+from models.measurement import Measurement
+from sсhemas.device import DeviceCreate, DeviceRead
 
 
-def export_measurements(db: Session):
+def export_measurements(db: Session) -> List[Dict]:
     measurements = db.query(Measurement).all()
     measurement_data = []
     for measurement in measurements:
@@ -18,19 +21,21 @@ def export_measurements(db: Session):
             "humidity": measurement.humidity,
             "co2": measurement.co2
         })
-    return json.dumps(measurement_data)
+    return measurement_data
 
 
 def create_device(db: Session, device: DeviceCreate):
-    device = Esp(mac_address=device.mac_address)
-    db.add(device)
+    db_device = db.query(Device).filter(Device.mac_address == device.mac_address).first()
+    if db_device:
+        raise HTTPException(400, f"Пристрій з mac-адресою '{device.mac_address}' вже існує")
+    new_device = Device(mac_address=device.mac_address)
+    db.add(new_device)
     db.commit()
-    db.refresh(device)
-    return device
+    db.refresh(new_device)
 
 
 def delete_device_by_mac(db: Session, mac_address: str):
-    device = db.query(Esp).filter(Esp.mac_address == mac_address).first()
+    device = db.query(Device).filter(Device.mac_address == mac_address).first()
     if device:
         db.delete(device)
         db.commit()
@@ -39,9 +44,9 @@ def delete_device_by_mac(db: Session, mac_address: str):
 
 
 def get_device_by_mac(db: Session, mac_address: str):
-    device = db.query(Esp).filter(Esp.mac_address == mac_address).options(
-        joinedload(Esp.measurements),
-        joinedload(Esp.configs)
+    device = db.query(Device).filter(Device.mac_address == mac_address).options(
+        joinedload(Device.measurements),
+        joinedload(Device.configs)
     ).first()
     if not device:
         raise ValueError(f"Пристрій з mac-адресою '{mac_address}' не знайдено")

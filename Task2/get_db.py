@@ -2,7 +2,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import database_exists, create_database
-from Task2 import Constants
+
+import Constants
 
 DATABASE_URL = f"postgresql://{Constants.PG_USER}:{Constants.PG_PASSWORD}@" \
                f"{Constants.PG_SERVER}/{Constants.PG_DB}"
@@ -31,3 +32,6 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+__all__ = ["get_db"]

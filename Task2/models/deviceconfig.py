@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, JSON, ForeignKey, String
 from sqlalchemy.orm import relationship
 
-from Task2.get_db import Base
+from get_db import Base
 
 
 class DeviceConfig(Base):
@@ -9,6 +9,6 @@ class DeviceConfig(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
-    device_id = Column(Integer, ForeignKey("devices.id"))
+    device_id = Column(Integer, ForeignKey("devices.id", ondelete="CASCADE"))
     config_data = Column(JSON)
-    device = relationship("Device", back_populates="configs", ondelete="CASCADE")
+    device = relationship("Device", back_populates="configs")

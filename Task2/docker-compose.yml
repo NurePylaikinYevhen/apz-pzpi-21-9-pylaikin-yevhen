@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - PG_USER=pylay
+      - PG_PASSWORD=12345
+      - PG_SERVER=db
+      - PG_DB=coursedb
+    depends_on:
+      - db
+
+  db:
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=pylay
+      - POSTGRES_PASSWORD=12345
+      - POSTGRES_DB=coursedb
+
+volumes:
+  postgres_data:

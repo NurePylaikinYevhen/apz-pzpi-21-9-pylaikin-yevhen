@@ -9,3 +9,10 @@ class MeasurementExport(BaseModel):
     temperature: float
     humidity: float
     co2: float
+
+
+class EnvironmentDataInput(BaseModel):
+    device_id: int
+    Temperature: float
+    Humidity: float
+    CO2: float

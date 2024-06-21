@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
-from Task2.get_db import Base
+from get_db import Base
 
 
 class Measurement(Base):

@@ -1,6 +1,6 @@
 from sqlalchemy import Integer, Column, String, Enum, Boolean
 
-from Task2.get_db import Base
+from get_db import Base
 
 
 class User(Base):

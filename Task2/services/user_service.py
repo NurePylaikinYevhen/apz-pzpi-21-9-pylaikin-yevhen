@@ -2,7 +2,7 @@ from http.client import HTTPException
 
 from sqlalchemy.orm import Session
 
-from Task2.models.user import User
+from models.user import User
 
 
 def ban_user(db: Session, username: str):
