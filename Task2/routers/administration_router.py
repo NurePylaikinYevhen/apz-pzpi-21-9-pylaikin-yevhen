@@ -25,60 +25,84 @@ from sсhemas.device import DeviceRead
 
 from logger import logger
 
+from models.user import User
+
+from auth import get_current_manager_or_admin, get_current_user, get_current_admin
+
 administration_router = APIRouter(tags=["admin"], prefix="/admin")
 
 
 @administration_router.post("/rooms", response_model=RoomRead)
-def create_room(room: RoomCreate, db: Session = Depends(get_db)):  # , current_user: User = Depends(get_current_user)):
-    # if current_user.role != "admin":
-    # raise HTTPException(status_code=403, detail="Тільки адмін може створювати кімнати")
-    return room_service.create_room(db, room)
+def create_room(
+        room: RoomCreate,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_admin)):
+    try:
+        room_service.create_room(db, room)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @administration_router.delete("/rooms/{room_id}")
-def delete_room(room_id: int, db: Session = Depends(get_db)):  # , current_user: User = Depends(get_current_user)):
-    # if current_user.role != "admin":
-    # raise HTTPException(status_code=403, detail="Тільки адмін може видаляти кімнати")
-    room_service.delete_room(db, room_id)
+def delete_room(
+        room_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_admin)):
+    try:
+        room_service.delete_room(db, room_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     return {"message": "Кімната видалена успішно"}
 
 
 @administration_router.post("/devices")
 def create_device(device: DeviceCreate,
-                  db: Session = Depends(get_db)):  # , current_user: User = Depends(get_current_user)):
-    # if current_user.role != "admin":
-    # raise HTTPException(status_code=403, detail="Тільки адмін може додавати пристрої")
-    device_service.create_device(db, device)
+                  db: Session = Depends(get_db),
+                  current_user: User = Depends(get_current_admin)):
+    try:
+        device_service.create_device(db, device)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return {"message": "Пристрій створений успішно"}
 
 
 @administration_router.delete("/devices/{mac_address}")
 def delete_device(mac_address: str,
-                  db: Session = Depends(get_db)):  # , current_user: User = Depends(get_current_user)):
-    # if current_user.role != "admin":
-    # raise HTTPException(status_code=403, detail="Тільки адмін може видаляти пристрої")
-    device_service.delete_device_by_mac(db, mac_address)
+                  db: Session = Depends(get_db),
+                  current_user: User = Depends(get_current_admin)):
+    try:
+        device_service.delete_device_by_mac(db, mac_address)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     return {"message": "Пристрій видалений успішно"}
 
 
 @administration_router.get("/devices/{mac_address}")
-def get_device(mac_address: str, db: Session = Depends(get_db)):  # , current_user: User = Depends(get_current_user)):
-    # if current_user.role != "admin":
-    # raise HTTPException(status_code=403, detail="Тільки адмін може видаляти пристрої")
-    return device_service.get_device_by_mac(db, mac_address)
+def get_device(
+        mac_address: str,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_admin)):
+    try:
+        return device_service.get_device_by_mac(db, mac_address)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @administration_router.get("/rooms", response_model=List[RoomRead])
-def get_all_rooms(db: Session = Depends(get_db)):  # , current_user: User = Depends(get_current_user)):
-    # if current_user.role not in ["admin", "manager"] and not current_user.is_banned:
-    # raise HTTPException(status_code=403, detail="Тільки адмін та менеджер можуть переглядати кімнати")
+def get_all_rooms(
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_manager_or_admin)
+):
+
     return room_service.get_all_rooms(db)
 
 
 @administration_router.get("/rooms/{room_id}/devices", response_model=List[DeviceRead])
-def get_room_devices(room_id: int, db: Session = Depends(get_db)):  # , current_user: User = Depends(get_current_user)):
-    # if current_user.role not in ["admin", "manager"] and not current_user.is_banned:
-    # raise HTTPException(status_code=403, detail="Тільки адмін та менеджер можуть переглядати пристрої в кімнаті")
+def get_room_devices(
+        room_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_manager_or_admin)):
+
     return room_service.get_room_devices(db, room_id)
 
 
@@ -86,7 +110,8 @@ def get_room_devices(room_id: int, db: Session = Depends(get_db)):  # , current_
 async def import_config(
     file: UploadFile = File(...),
     device_id: Optional[int] = Query(None, description="ID пристрою для імпорту конфігурації"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_manager_or_admin)
 ):
     content = await file.read()
     try:
@@ -104,7 +129,8 @@ async def import_config(
 @administration_router.get("/config/export")
 def export_config(
     db: Session = Depends(get_db),
-    device_id: Optional[int] = Query(None, description="ID пристрою для експорту конфігурації")
+    device_id: Optional[int] = Query(None, description="ID пристрою для експорту конфігурації"),
+    current_user: User = Depends(get_current_manager_or_admin)
 ):
     config_data = config_service.export_config(db, device_id)
     if not config_data:
@@ -122,7 +148,12 @@ def export_config(
     )
 
 @administration_router.put("/config/{device_id}")
-def update_config_parameter(device_id: int, config_update: ConfigUpdate, db: Session = Depends(get_db)):
+def update_config_parameter(
+        device_id: int,
+        config_update: ConfigUpdate,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_manager_or_admin)
+):
     try:
         updated_config = config_service.update_config_parameter(db, device_id, config_update)
         logger.info(f"Configuration updated successfully for device {device_id}")
@@ -144,29 +175,40 @@ def update_config_parameter(device_id: int, config_update: ConfigUpdate, db: Ses
 
 
 @administration_router.get("/measurements/export")
-def export_measurements(db: Session = Depends(get_db)):  # , current_user: User = Depends(get_current_user)):
-    # if current_user.role not in ["admin", "manager"] and not current_user.is_banned:
-    # raise HTTPException(status_code=403, detail="Тільки адмін та менеджер можуть експортувати всі дані вимірювань")
+def export_measurements(
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_manager_or_admin)
+):
+
     measurements = device_service.export_measurements(db)
     return measurements
 
 
 @administration_router.post("/ban/{username}")
-def ban_user(username: str, db: Session = Depends(get_db)):  # , current_user: User = Depends(get_current_user)):
-    # if current_user.role not in ["admin", "manager"] and not current_user.is_banned:
-    # raise HTTPException(status_code=403, detail="Тільки адмін може блокувати користувачів")
+def ban_user(
+        username: str,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_admin)):
+
+    user_service.ban_user(db, username)
+
     ...
 
 
 @administration_router.post("/unban/{username}")
-def unban_user(username: str, db: Session = Depends(get_db)):
-    # if current_user.role not in ["admin"] and not current_user.is_banned:
-    # raise HTTPException(status_code=403, detail="Тільки адмін може розблокувати користувачів")
+def unban_user(
+        username: str,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_admin)):
+
     user_service.unban_user(db, username)
 
 
 @administration_router.get("/change_role/{username}")
-def change_role(username: str, role: str, db: Session = Depends(get_db)):
-    # if current_user.role not in ["admin"] and not current_user.is_banned:
-    # raise HTTPException(status_code=403, detail="Тільки адмін може змінювати ролі користувачів")
+def change_role(
+        username: str,
+        role: str,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_admin)):
+
     user_service.change_role(db, username, role)

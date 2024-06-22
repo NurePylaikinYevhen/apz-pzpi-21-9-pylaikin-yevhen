@@ -1,5 +1,4 @@
 {
-  "5": {
     "ideal_values": {
         "Temperature": 22,
         "Humidity": 45,
@@ -19,5 +18,4 @@
       "Interval": 0
     },
     "productivity_norm": 80
-  }
 }

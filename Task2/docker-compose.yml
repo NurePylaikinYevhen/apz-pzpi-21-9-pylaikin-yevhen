@@ -10,6 +10,7 @@ services:
       - PG_PASSWORD=12345
       - PG_SERVER=db
       - PG_DB=coursedb
+      - JWT_SECRET_KEY=pylay_secret_key1221
     depends_on:
       - db
 

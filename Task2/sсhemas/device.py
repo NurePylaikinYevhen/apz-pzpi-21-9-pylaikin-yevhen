@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import List, Optional, re
+from typing import List, Optional
+import re
 
 from pydantic import BaseModel, validator
 
