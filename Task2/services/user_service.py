@@ -29,7 +29,7 @@ def login(db: Session, username: str, password: str):
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Неправильне ім'я користувача або пароль",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -69,5 +69,10 @@ def change_role(db: Session, username: str, role: str):
         raise HTTPException(status_code=404, detail="Користувача не знайдено")
     if role not in ['manager', 'admin']:
         raise HTTPException(status_code=400, detail="Неправильна роль")
-    user.role = role
-    db.commit()
+    if user.role == 'manager' and role == 'admin':
+        user.role = role
+        db.commit()
+    elif user.role == 'admin' and role == 'manager':
+        raise HTTPException(status_code=400, detail="Неможливо понизити адміністратора до менеджера")
+    else:
+        raise HTTPException(status_code=400, detail="Неможливо змінити роль")

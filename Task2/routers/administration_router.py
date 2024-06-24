@@ -190,9 +190,11 @@ def ban_user(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_admin)):
 
-    user_service.ban_user(db, username)
-
-    ...
+    try:
+        user_service.ban_user(db, username)
+        return {"message": f"Користувач {username} розблокований"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @administration_router.post("/unban/{username}")
@@ -201,7 +203,11 @@ def unban_user(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_admin)):
 
-    user_service.unban_user(db, username)
+    try:
+        user_service.unban_user(db, username)
+        return {"message": f"Користувач {username} розблокований"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @administration_router.get("/change_role/{username}")
@@ -211,4 +217,10 @@ def change_role(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_admin)):
 
-    user_service.change_role(db, username, role)
+    try:
+        user_service.change_role(db, username, role)
+        return {"message": f"Роль користувача {username} змінена на {role}"}
+    except HTTPException as e:
+        raise HTTPException(status_code=e.status_code, detail=str(e.detail))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
