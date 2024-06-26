@@ -9,33 +9,36 @@ import {
     ListItemText,
     Divider,
     CircularProgress,
-    TableCell, TableBody, TableRow, TableHead, Table, TableContainer, Tooltip, IconButton
+    TableCell, TableBody, TableRow, TableHead, Table, TableContainer, Tooltip, IconButton, Snackbar, Alert
 } from '@mui/material';
 import axios from 'axios';
 import {useAuth} from "../AuthContext";
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import {roomActions} from "../actions/roomActions";
 
 const RoomDetails = () => {
     const { id } = useParams();
     const [devices, setDevices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
     const navigate = useNavigate();
     const { logout } = useAuth();
+    const { fetchRoomDevices, exportConfig, importConfig } = roomActions();
 
     useEffect(() => {
-        fetchRoomDetails();
+        fetchRoomData();
     }, [id]);
 
-    const fetchRoomDetails = async () => {
+    const fetchRoomData = async () => {
         try {
             setLoading(true);
-            const response = await axios.get(`/api/admin/rooms/${id}/devices`);
-            setDevices(response.data);
+            const devicesData = await fetchRoomDevices(id);
+            setDevices(devicesData);
             setError(null);
         } catch (error) {
-            console.error('Error fetching room details:', error);
+            console.error('Помилка при завантаженні кімнати:', error);
             if (error.response && error.response.status === 401) {
                 logout();
                 navigate('/login');
@@ -49,46 +52,38 @@ const RoomDetails = () => {
 
     const handleExportConfig = async (deviceId = null) => {
         try {
-            const url = deviceId
-                ? `/api/admin/config/export?device_id=${deviceId}`
-                : '/api/admin/config/export';
-            const response = await axios.get(url, { responseType: 'blob' });
-            const contentDisposition = response.headers['content-disposition'];
-            const filename = contentDisposition
-                ? contentDisposition.split('filename=')[1].replace(/"/g, '')
-                : `config_${deviceId ? `device_${deviceId}` : 'all'}_${new Date().toISOString()}.json`;
-            const downloadUrl = window.URL.createObjectURL(new Blob([response.data]));
+            const blob = await exportConfig(deviceId);
+            const downloadUrl = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = downloadUrl;
-            link.setAttribute('download', filename);
+            link.download = `config_${deviceId ? `device_${deviceId}` : 'all'}_${new Date().toISOString()}.json`;
             document.body.appendChild(link);
             link.click();
             link.remove();
+            setSuccessMessage('Конфігурацію успішно експортовано');
         } catch (error) {
-            console.error('Error exporting config:', error);
-            // Тут в майбутньому буде обробка помилок, наприклад, показ повідомлення користувачу
+            setError('Помилка при експорті конфігурації');
         }
     };
 
     const handleImportConfig = async (deviceId = null, event) => {
         const file = event.target.files[0];
         if (file) {
-            const formData = new FormData();
-            formData.append('file', file);
             try {
-                const url = deviceId
-                    ? `/api/admin/config/import?device_id=${deviceId}`
-                    : '/api/admin/config/import';
-                await axios.post(url, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
-                // Тут буде оновлення даних після успішного імпорту
-                fetchRoomDetails();
+                await importConfig(file, deviceId);
+                setSuccessMessage('Конфігурацію успішно імпортовано');
+                fetchRoomData();
             } catch (error) {
-                console.error('Error importing config:', error);
-                // Тут в майбутньому буде обробка помилок, наприклад, показ повідомлення користувачу
-            }
+                setError('Помилка при імпорті конфігурації');            }
         }
+    };
+
+    const handleCloseSnackbar = (event, reason) => {
+        if (reason === 'clickaway') {
+            return;
+        }
+        setError(null);
+        setSuccessMessage(null);
     };
 
     if (loading) {
@@ -97,10 +92,6 @@ const RoomDetails = () => {
                 <CircularProgress />
             </Box>
         );
-    }
-
-    if (error) {
-        return <Typography color="error">{error}</Typography>;
     }
 
     if (devices.length === 0) {
@@ -187,7 +178,16 @@ const RoomDetails = () => {
                     </Box>
                 ))}
             </Paper>
-        </Box>
+            <Snackbar open={!!error} autoHideDuration={3000} onClose={handleCloseSnackbar}>
+                <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
+                    {error}
+                </Alert>
+            </Snackbar>
+            <Snackbar open={!!successMessage} autoHideDuration={3000} onClose={handleCloseSnackbar}>
+                <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+                    {successMessage}
+                </Alert>
+            </Snackbar>        </Box>
     );
 };
 

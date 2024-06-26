@@ -31,6 +31,11 @@ const SidebarNavigation = () => {
                         Пристрої
                     </Button>
                 </ListItem>
+                <ListItem>
+                    <Button component={Link} to="/admin/users" variant="text" fullWidth sx={{ justifyContent: 'flex-start', color: 'white' }}>
+                        Користувачі
+                    </Button>
+                </ListItem>
             </List>
         </Box>
     );

@@ -36,6 +36,16 @@ class UserOut(BaseModel):
         from_attributes = True
 
 
+class UserRead(BaseModel):
+    id: int
+    username: str
+    role: str
+    is_banned: bool
+
+    class Config:
+        from_attributes = True
+
+
 class LoginInput(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     password: str = Field(..., min_length=8, max_length=50)

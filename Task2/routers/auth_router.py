@@ -15,8 +15,8 @@ auth_router = APIRouter(tags=["auth"], prefix="/auth")
 @auth_router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(
         user: UserCreate,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_admin)):
+        db: Session = Depends(get_db)):
+        #current_user: User = Depends(get_current_admin)):
     try:
         return user_service.register_user(db, user.username, user.password, user.role)
     except ValueError as e:
@@ -44,3 +44,5 @@ def change_password(password_change: PasswordChangeInput, current_user: User = D
         return {"message": "Пароль успішно змінено"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+

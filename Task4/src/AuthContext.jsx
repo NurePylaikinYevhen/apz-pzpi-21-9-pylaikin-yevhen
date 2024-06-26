@@ -7,6 +7,7 @@ export const AuthProvider = ({ children }) => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [username, setUsername] = useState('');
     const [token, setToken] = useState(localStorage.getItem('token'));
+    const [myRole, setMyRole] = useState('');
 
     useEffect(() => {
         if (token) {
@@ -20,6 +21,7 @@ export const AuthProvider = ({ children }) => {
             const response = await axios.get('/api/auth/me');
             setIsLoggedIn(true);
             setUsername(response.data.username);
+            setMyRole(response.data.role);
         } catch (error) {
             console.error('Auth check failed:', error);
             logout();
@@ -41,8 +43,7 @@ export const AuthProvider = ({ children }) => {
             const newToken = response.data.access_token;
             localStorage.setItem('token', newToken);
             setToken(newToken);
-            setIsLoggedIn(true);
-            setUsername(username);
+            await checkAuth();
             return true;
         } catch (error) {
             console.error('Login failed:', error);
@@ -59,7 +60,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ isLoggedIn, username, login, logout, token }}>
+        <AuthContext.Provider value={{ isLoggedIn, username, login, logout, token, myRole }}>
             {children}
         </AuthContext.Provider>
     );

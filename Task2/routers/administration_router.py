@@ -29,6 +29,8 @@ from models.user import User
 
 from auth import get_current_manager_or_admin, get_current_user, get_current_admin
 
+from sсhemas.user import UserRead
+
 administration_router = APIRouter(tags=["admin"], prefix="/admin")
 
 
@@ -93,7 +95,6 @@ def get_all_rooms(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_manager_or_admin)
 ):
-
     return room_service.get_all_rooms(db)
 
 
@@ -102,16 +103,15 @@ def get_room_devices(
         room_id: int,
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_manager_or_admin)):
-
     return room_service.get_room_devices(db, room_id)
 
 
 @administration_router.post("/config/import")
 async def import_config(
-    file: UploadFile = File(...),
-    device_id: Optional[int] = Query(None, description="ID пристрою для імпорту конфігурації"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_manager_or_admin)
+        file: UploadFile = File(...),
+        device_id: Optional[int] = Query(None, description="ID пристрою для імпорту конфігурації"),
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_manager_or_admin)
 ):
     content = await file.read()
     try:
@@ -128,9 +128,9 @@ async def import_config(
 
 @administration_router.get("/config/export")
 def export_config(
-    db: Session = Depends(get_db),
-    device_id: Optional[int] = Query(None, description="ID пристрою для експорту конфігурації"),
-    current_user: User = Depends(get_current_manager_or_admin)
+        db: Session = Depends(get_db),
+        device_id: Optional[int] = Query(None, description="ID пристрою для експорту конфігурації"),
+        current_user: User = Depends(get_current_manager_or_admin)
 ):
     config_data = config_service.export_config(db, device_id)
     if not config_data:
@@ -146,6 +146,7 @@ def export_config(
         media_type="application/json",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
 
 @administration_router.put("/config/{device_id}")
 def update_config_parameter(
@@ -179,7 +180,6 @@ def export_measurements(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_manager_or_admin)
 ):
-
     measurements = device_service.export_measurements(db)
     return measurements
 
@@ -189,7 +189,6 @@ def ban_user(
         username: str,
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_admin)):
-
     try:
         user_service.ban_user(db, username)
         return {"message": f"Користувач {username} розблокований"}
@@ -202,7 +201,6 @@ def unban_user(
         username: str,
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_admin)):
-
     try:
         user_service.unban_user(db, username)
         return {"message": f"Користувач {username} розблокований"}
@@ -216,7 +214,6 @@ def change_role(
         role: str,
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_admin)):
-
     try:
         user_service.change_role(db, username, role)
         return {"message": f"Роль користувача {username} змінена на {role}"}
@@ -224,3 +221,11 @@ def change_role(
         raise HTTPException(status_code=e.status_code, detail=str(e.detail))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@administration_router.get("/users", response_model=List[UserRead])
+def get_users(
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_admin)
+):
+    return user_service.get_all_users(db)

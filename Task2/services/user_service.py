@@ -76,3 +76,7 @@ def change_role(db: Session, username: str, role: str):
         raise HTTPException(status_code=400, detail="Неможливо понизити адміністратора до менеджера")
     else:
         raise HTTPException(status_code=400, detail="Неможливо змінити роль")
+
+
+def get_all_users(db: Session):
+    return db.query(User).all()

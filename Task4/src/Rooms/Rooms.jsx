@@ -1,34 +1,58 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Grid, Card, CardContent, CardActions, Button, IconButton } from '@mui/material';
+import {
+    Box,
+    Typography,
+    Grid,
+    Card,
+    CardContent,
+    CardActions,
+    Button,
+    IconButton,
+    Snackbar,
+    Alert
+} from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import RoomCreationComponent from "../components/createRoom";
+import {roomActions} from "../actions/roomActions";
 
 const Rooms = () => {
     const [rooms, setRooms] = useState([]);
     const [showCreation, setShowCreation] = useState(false);
+    const [error, setError] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
+    const { fetchRooms, deleteRoom } = roomActions();
 
     useEffect(() => {
-        fetchRooms().catch(error => console.log('Помилка:', error));
+        loadRooms().catch(error => console.log(error));
     }, []);
 
-    const fetchRooms = async () => {
+    const loadRooms = async () => {
         try {
-            const response = await axios.get('/api/admin/rooms');
-            setRooms(response.data);
+            const fetchedRooms = await fetchRooms();
+            setRooms(fetchedRooms);
         } catch (error) {
-            console.error('Помилка при пошуку кімнат:', error);
+            setError(`Не вдалося завантажити кімнати. ${error}`);
         }
     };
 
     const handleDeleteRoom = async (roomId) => {
         try {
-            await axios.delete(`/api/admin/rooms/${roomId}`);
-            fetchRooms().catch(error => console.error('Помилка:', error));
+            await deleteRoom(roomId);
+            await loadRooms();
+            setSuccessMessage('Кімнату успішно видалено');
         } catch (error) {
-            console.error('Помилка при видаленні:', error);
+            setError(`Не вдалося видалити кімнату ${error}`);
         }
+    };
+
+    const handleCloseSnackbar = (event, reason) => {
+        if (reason === 'clickaway') {
+            return;
+        }
+        setError(null);
+        setSuccessMessage(null);
     };
 
     return (
@@ -45,9 +69,9 @@ const Rooms = () => {
             {showCreation && (
                 <Box mt={3}>
                     <RoomCreationComponent
-                        onClose={() => {
+                        onClose={async () => {
                             setShowCreation(false);
-                            fetchRooms();
+                            await loadRooms();
                         }}
                     />
                 </Box>
@@ -84,6 +108,16 @@ const Rooms = () => {
                     </Grid>
                 ))}
             </Grid>
+            <Snackbar open={!!error} autoHideDuration={3000} onClose={handleCloseSnackbar}>
+                <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
+                    {error}
+                </Alert>
+            </Snackbar>
+            <Snackbar open={!!successMessage} autoHideDuration={3000} onClose={handleCloseSnackbar}>
+                <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+                    {successMessage}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 };

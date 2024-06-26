@@ -12,7 +12,7 @@ import {
     List,
     ListItem,
     ListItemText,
-    ListItemSecondaryAction,
+    ListItemSecondaryAction, Snackbar, Alert,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -20,12 +20,16 @@ import {
     Delete as DeleteIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
+import {roomActions} from "../actions/roomActions";
 
-const RoomCreationComponent = () => {
+const RoomCreationComponent = ({ onClose }) => {
     const [step, setStep] = useState(0);
     const [roomName, setRoomName] = useState('');
     const [devices, setDevices] = useState([{ macAddress: '' }]);
     const [isFormValid, setIsFormValid] = useState(false);
+    const [error, setError] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
+    const { createRoom } = roomActions();
 
     const handleAddRoom = () => {
         setStep(1);
@@ -63,17 +67,32 @@ const RoomCreationComponent = () => {
         setDevices(newDevices);
     };
 
-    const handleSubmit = () => {
-        // Тут буде логіка відправки даних на сервер (в наступному комміті)
-        console.log('Кімната:', roomName);
-        console.log('Пристрої:', devices);
-        // Після відправки можна скинути стан
-        handleBack();
+    const handleSubmit = async () => {
+        try {
+            const roomData = {
+                name: roomName,
+                devices: devices.filter(device => device.macAddress.trim() !== '')
+            };
+            await createRoom(roomData);
+            setSuccessMessage('Кімнату успішно створено');
+            handleBack();
+            onClose();
+        } catch (error) {
+            setError(`Помилка при створенні кімнати: ${error.message}`);
+        }
     };
 
     // Валідація MAC-адреси
     const isValidMacAddress = (mac) => {
         return /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(mac);
+    };
+
+    const handleCloseSnackbar = (event, reason) => {
+        if (reason === 'clickaway') {
+            return;
+        }
+        setError(null);
+        setSuccessMessage(null);
     };
 
     return (
@@ -187,6 +206,16 @@ const RoomCreationComponent = () => {
                     </Box>
                 </Collapse>
             </Paper>
+            <Snackbar open={!!error} autoHideDuration={3000} onClose={handleCloseSnackbar}>
+                <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
+                    {error}
+                </Alert>
+            </Snackbar>
+            <Snackbar open={!!successMessage} autoHideDuration={3000} onClose={handleCloseSnackbar}>
+                <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+                    {successMessage}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 };

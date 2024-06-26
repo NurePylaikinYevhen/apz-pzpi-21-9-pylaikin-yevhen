@@ -13,6 +13,7 @@ import RoomDetails from "./Rooms/RoomDetails";
 import Devices from "./Devices/Devices";
 import CustomAppBar from "./components/AppBar";
 import AdminLayout from "./AdminLayout";
+import UserManagement from "./Person/UserManagement";
 
 axios.defaults.baseURL = 'http://localhost:5000';
 const theme = createTheme({
@@ -45,6 +46,7 @@ function App() {
                                     <Route path="rooms" element={<Rooms />} />
                                     <Route path="rooms/:id" element={<RoomDetails />} />
                                     <Route path="devices" element={<Devices />} />
+                                    <Route path="users" element={<UserManagement />} />
                                 </Route>
                             </Routes>
                         </Box>
