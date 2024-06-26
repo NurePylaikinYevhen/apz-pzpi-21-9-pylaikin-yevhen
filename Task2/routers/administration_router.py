@@ -29,7 +29,7 @@ from models.user import User
 
 from auth import get_current_manager_or_admin, get_current_user, get_current_admin
 
-from sсhemas.user import UserRead
+from sсhemas.user import UserRead, ChangeRoleInput
 
 administration_router = APIRouter(tags=["admin"], prefix="/admin")
 
@@ -208,14 +208,13 @@ def unban_user(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@administration_router.get("/change_role/{username}")
+@administration_router.post("/change_role")
 def change_role(
-        username: str,
-        role: str,
+        change_data: ChangeRoleInput,
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_admin)):
     try:
-        user_service.change_role(db, username, role)
+        user_service.change_role(db, change_data.username, change_data.role)
         return {"message": f"Роль користувача {username} змінена на {role}"}
     except HTTPException as e:
         raise HTTPException(status_code=e.status_code, detail=str(e.detail))

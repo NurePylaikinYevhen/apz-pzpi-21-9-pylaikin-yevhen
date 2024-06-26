@@ -77,3 +77,8 @@ class PasswordChangeInput(BaseModel):
         if 'old_password' in values and v == values['old_password']:
             raise ValueError('Новий пароль має відрізнятися від старого')
         return v
+
+
+class ChangeRoleInput(BaseModel):
+    username: str
+    role: str
