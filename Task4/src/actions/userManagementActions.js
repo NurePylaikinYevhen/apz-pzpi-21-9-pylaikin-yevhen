@@ -13,7 +13,7 @@ export const userManagementActions = () => {
 
     const changeUserRole = async (username, role) => {
         try {
-            const response = await axios.get(`/admin/change_role/${username}?role=${role}`);
+            const response = await axios.post('/api/admin/change_role', { username, role });
             return response.data;
         } catch (error) {
             throw error;
@@ -22,7 +22,7 @@ export const userManagementActions = () => {
 
     const banUser = async (username) => {
         try {
-            const response = await axios.post(`/admin/ban/${username}`);
+            const response = await axios.post(`/api/admin/ban/${username}`);
             return response.data;
         } catch (error) {
             throw error;
@@ -31,7 +31,16 @@ export const userManagementActions = () => {
 
     const unbanUser = async (username) => {
         try {
-            const response = await axios.post(`/admin/unban/${username}`);
+            const response = await axios.post(`/api/admin/unban/${username}`);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    };
+
+    const registerUser = async (userData) => {
+        try {
+            const response = await axios.post('/api/auth/register', userData);
             return response.data;
         } catch (error) {
             throw error;
@@ -43,5 +52,6 @@ export const userManagementActions = () => {
         changeUserRole,
         banUser,
         unbanUser,
+        registerUser
     };
 };

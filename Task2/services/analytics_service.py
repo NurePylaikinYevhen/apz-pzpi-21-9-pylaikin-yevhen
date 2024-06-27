@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 import pandas as pd
 from statistics import mean, median
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 from datetime import datetime
 import math
 import openpyxl
@@ -11,6 +11,8 @@ from models.measurement import Measurement
 from models.deviceconfig import DeviceConfig
 
 from sсhemas.measurement import EnvironmentDataInput
+
+from sсhemas.analytics import StatisticsOutput
 
 
 def get_device_config(db: Session, device_id: int) -> Dict:
@@ -100,54 +102,39 @@ def calculate_prediction(db: Session, device_id: int, temperature: float, humidi
     return prediction, recommendations
 
 
-def get_db_stats(db: Session, from_date: datetime, to_date: datetime, room_id: int = None) -> pd.DataFrame:
-    query = db.query(Measurement).filter(Measurement.timestamp > from_date, Measurement.timestamp < to_date)
+def get_statistics(db: Session, time_from: datetime, time_to: datetime, room_id: Optional[int] = None) -> List[StatisticsOutput]:
+    query = db.query(Measurement).filter(Measurement.timestamp.between(time_from, time_to))
     if room_id:
         query = query.join(Device).filter(Device.room_id == room_id)
 
-    rows = query.all()
+    df = pd.read_sql(query.statement, db.bind)
 
-    if not rows:
-        return pd.DataFrame()
+    if df.empty:
+        return []
 
-    stats = {}
-    for row in rows:
-        device_config = get_device_config(db, row.device_id)
-        prediction = calculate_productivity(row.temperature, row.humidity, row.co2, device_config)
+    device_stats = []
+    for device_id, device_df in df.groupby('device_id'):
+        device_stats.append(StatisticsOutput(
+            device_id=f'device_{device_id}',
+            avg_temperature=device_df['temperature'].mean(),
+            median_temperature=device_df['temperature'].median(),
+            temperature_deviation=calculate_deviation(device_df['temperature']),
+            avg_humidity=device_df['humidity'].mean(),
+            median_humidity=device_df['humidity'].median(),
+            humidity_deviation=calculate_deviation(device_df['humidity']),
+            avg_co2=device_df['co2'].mean(),
+            median_co2=device_df['co2'].median(),
+            co2_deviation=calculate_deviation(device_df['co2']),
+            avg_productivity=device_df['productivity'].mean(),
+            median_productivity=device_df['productivity'].median(),
+            productivity_deviation=calculate_deviation(device_df['productivity'])
+        ))
 
-        if row.device_id not in stats:
-            stats[row.device_id] = {
-                'Температура': [],
-                'Вологість': [],
-                'CO2': [],
-                'Продуктивність': []
-            }
+    return device_stats
 
-        stats[row.device_id]['Температура'].append(row.temperature)
-        stats[row.device_id]['Вологість'].append(row.humidity)
-        stats[row.device_id]['CO2'].append(row.co2)
-        stats[row.device_id]['Продуктивність'].append(prediction)
 
-    result = []
-    for device_id, device_stats in stats.items():
-        device_config = get_device_config(db, device_id)
-        result.append({
-            'Пристрій': f'device_{device_id}',
-            'Середня температура': mean(device_stats['Температура']),
-            'Медіанна температура': median(device_stats['Температура']),
-            'Відхилення температури': (mean(device_stats['Температура']) - device_config['ideal_values']['Temperature']) / device_config['ideal_values']['Temperature'],
-            'Середня вологість': mean(device_stats['Вологість']),
-            'Медіанна вологість': median(device_stats['Вологість']),
-            'Відхилення вологості': (mean(device_stats['Вологість']) - device_config['ideal_values']['Humidity']) / device_config['ideal_values']['Humidity'],
-            'Середній CO2': mean(device_stats['CO2']),
-            'Медіанний CO2': median(device_stats['CO2']),
-            'Відхилення CO2': (mean(device_stats['CO2']) - device_config['ideal_values']['CO2']) / device_config['ideal_values']['CO2'],
-            'Середня продуктивність': mean(device_stats['Продуктивність']),
-            'Медіанна продуктивність': median(device_stats['Продуктивність']),
-            'Відхилення продуктивності': (mean(device_stats['Продуктивність']) - device_config.get('productivity_norm', 80)) / device_config.get('productivity_norm', 80)
-        })
-
-    return pd.DataFrame(result)
+def calculate_deviation(series: pd.Series) -> float:
+    return (series.mean() - series.median()) / series.median()
 
 
 def record_environment_data(db: Session, input_data: EnvironmentDataInput):
@@ -165,19 +152,5 @@ def record_environment_data(db: Session, input_data: EnvironmentDataInput):
     except Exception as e:
         db.rollback()
         raise e
-def generate_statistics(db: Session, from_date: datetime, to_date: datetime) -> str:
-    df = get_db_stats(db, from_date, to_date)
-    excel_file = 'statistics.xlsx'
-    with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False)
-    return excel_file
-
-
-def generate_statistics_room(db: Session, from_date: datetime, to_date: datetime, room_id: int) -> str:
-    df = get_db_stats(db, from_date, to_date, room_id)
-    excel_file = 'statistics_room.xlsx'
-    with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False)
-    return excel_file
 
 

@@ -54,42 +54,27 @@ export const roomActions = () => {
         }
     };
 
-    const updateRoomDetails = async (roomId, roomData) => {
+    const getAllStatistics = async (timeFrom, timeTo) => {
         try {
-            const response = await axios.put(`/api/admin/rooms/${roomId}`, roomData);
-            return response.data;
-        } catch (error) {
-            console.error('Помилка при оновленні деталей кімнати:', error);
-            throw error;
-        }
-    };
-
-    const exportConfig = async (deviceId = null) => {
-        try {
-            const url = deviceId
-                ? `/api/admin/config/export?device_id=${deviceId}`
-                : '/api/admin/config/export';
-            const response = await axios.get(url, { responseType: 'blob' });
-            return response.data;
-        } catch (error) {
-            console.error('Помилка при експорті конфігурації:', error);
-            throw error;
-        }
-    };
-
-    const importConfig = async (file, deviceId = null) => {
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            const url = deviceId
-                ? `/api/admin/config/import?device_id=${deviceId}`
-                : '/api/admin/config/import';
-            const response = await axios.post(url, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+            const response = await axios.post('/api/analytics/statistics/all', {
+                time_from: timeFrom.toISOString(),
+                time_to: timeTo.toISOString()
             });
             return response.data;
         } catch (error) {
-            console.error('Помилка при імпорті конфігурації:', error);
+            throw error;
+        }
+    };
+
+    const getRoomStatistics = async (roomId, timeFrom, timeTo) => {
+        try {
+            const response = await axios.post('/api/analytics/statistics/room', {
+                room_id: roomId,
+                time_from: timeFrom.toISOString(),
+                time_to: timeTo.toISOString()
+            });
+            return response.data;
+        } catch (error) {
             throw error;
         }
     };
@@ -100,8 +85,7 @@ export const roomActions = () => {
         createRoom,
         fetchRoomDetails,
         fetchRoomDevices,
-        updateRoomDetails,
-        exportConfig,
-        importConfig
+        getAllStatistics,
+        getRoomStatistics
     };
 };

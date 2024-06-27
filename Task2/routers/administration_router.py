@@ -191,7 +191,7 @@ def ban_user(
         current_user: User = Depends(get_current_admin)):
     try:
         user_service.ban_user(db, username)
-        return {"message": f"Користувач {username} розблокований"}
+        return {"message": f"Користувач {username} заблокований"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -215,7 +215,7 @@ def change_role(
         current_user: User = Depends(get_current_admin)):
     try:
         user_service.change_role(db, change_data.username, change_data.role)
-        return {"message": f"Роль користувача {username} змінена на {role}"}
+        return {"message": f"Роль користувача {change_data.username} змінена на {change_data.role}"}
     except HTTPException as e:
         raise HTTPException(status_code=e.status_code, detail=str(e.detail))
     except Exception as e:

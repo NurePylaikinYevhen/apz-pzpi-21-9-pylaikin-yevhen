@@ -1,10 +1,11 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, {createContext, useState, useContext, useEffect, useCallback} from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [username, setUsername] = useState('');
     const [token, setToken] = useState(localStorage.getItem('token'));
     const [myRole, setMyRole] = useState('');
@@ -13,18 +14,30 @@ export const AuthProvider = ({ children }) => {
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             checkAuth();
+        } else {
+            setIsLoading(false);
         }
     }, [token]);
 
     const checkAuth = async () => {
+        const currentToken = token || localStorage.getItem('token');
+        if (!currentToken) {
+            setIsLoading(false);
+            return;
+        }
         try {
-            const response = await axios.get('/api/auth/me');
+            const response = await axios.get('/api/auth/me', {
+                headers: { 'Authorization': `Bearer ${currentToken}` }
+            });
+            console.log('Auth check response:', response.data);
             setIsLoggedIn(true);
             setUsername(response.data.username);
             setMyRole(response.data.role);
         } catch (error) {
-            console.error('Auth check failed:', error);
+            console.error('Auth check failed:', error.response ? error.response.data : error);
             logout();
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -40,6 +53,7 @@ export const AuthProvider = ({ children }) => {
             }, {
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
             });
+            console.log('Login response:', response.data);
             const newToken = response.data.access_token;
             localStorage.setItem('token', newToken);
             setToken(newToken);
@@ -56,14 +70,16 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
         setIsLoggedIn(false);
         setUsername('');
+        setMyRole('');
         delete axios.defaults.headers.common['Authorization'];
     };
 
     return (
-        <AuthContext.Provider value={{ isLoggedIn, username, login, logout, token, myRole }}>
+        <AuthContext.Provider value={{ isLoggedIn, isLoading, username, login, logout, token, myRole }}>
             {children}
         </AuthContext.Provider>
     );
 };
+
 
 export const useAuth = () => useContext(AuthContext);
