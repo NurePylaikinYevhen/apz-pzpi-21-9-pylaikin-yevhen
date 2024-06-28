@@ -1,13 +1,41 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 
 class PredictionInput(BaseModel):
-    device_id: int
+    mac_address: str
     Temperature: float
     Humidity: float
     CO2: float
+
+
+class ParameterStats(BaseModel):
+    mean: Optional[float] = None
+    median: Optional[float] = None
+    std: Optional[float] = None
+    min: Optional[float] = None
+    max: Optional[float] = None
+    quartiles: Optional[List[Optional[float]]] = None
+    iqr: Optional[float] = None
+    skewness: Optional[float] = None
+    kurtosis: Optional[float] = None
+
+
+class TimeStats(BaseModel):
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    duration: Optional[float] = None
+    hourly_trends: Optional[Dict[str, List[Optional[float]]]] = None
+
+
+class StatisticsOutput(BaseModel):
+    device_id: str
+    temperature: Optional[ParameterStats] = None
+    humidity: Optional[ParameterStats] = None
+    co2: Optional[ParameterStats] = None
+    productivity: Optional[ParameterStats] = None
+    time_stats: Optional[TimeStats] = None
 
 
 class StatisticsInput(BaseModel):
@@ -17,22 +45,6 @@ class StatisticsInput(BaseModel):
 
 class RoomStatisticsInput(StatisticsInput):
     room_id: int
-
-
-class StatisticsOutput(BaseModel):
-    device_id: str
-    avg_temperature: float
-    median_temperature: float
-    temperature_deviation: float
-    avg_humidity: float
-    median_humidity: float
-    humidity_deviation: float
-    avg_co2: float
-    median_co2: float
-    co2_deviation: float
-    avg_productivity: float
-    median_productivity: float
-    productivity_deviation: float
 
 
 class StatisticsResponse(BaseModel):

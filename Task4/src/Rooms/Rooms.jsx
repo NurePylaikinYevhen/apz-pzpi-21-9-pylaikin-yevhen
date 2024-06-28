@@ -15,11 +15,7 @@ import { Delete as DeleteIcon } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import RoomCreationComponent from "../components/createRoom";
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3';
 import {roomActions} from "../actions/roomActions";
-import StatisticsCard from "../components/StatisticCard";
 
 
 const Rooms = () => {
@@ -27,29 +23,13 @@ const Rooms = () => {
     const [showCreation, setShowCreation] = useState(false);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
-    const [timeFrom, setTimeFrom] = useState(new Date());
-    const [timeTo, setTimeTo] = useState(new Date());
-    const [statistics, setStatistics] = useState(null);
 
-    const { fetchRooms, deleteRoom, getAllStatistics } = roomActions();
+    const { fetchRooms, deleteRoom, exportMeasurements  } = roomActions();
 
     useEffect(() => {
         loadRooms().catch(error => console.log(error));
     }, []);
 
-    useEffect(() => {
-        loadRooms();
-        loadStatistics();
-    }, [timeFrom, timeTo]);
-
-    const loadStatistics = async () => {
-        try {
-            const statistic = await getAllStatistics(timeFrom, timeTo)
-            setStatistics(statistic.data);
-        } catch (error) {
-            setError(`Не вдалося завантажити статистику. ${error}`);
-        }
-    };
 
     const loadRooms = async () => {
         try {
@@ -70,6 +50,15 @@ const Rooms = () => {
         }
     };
 
+    const handleExportMeasurements = async () => {
+        try {
+            await exportMeasurements();
+            setSuccessMessage('Виміри успішно експортовано');
+        } catch (error) {
+            setError(`Не вдалося експортувати виміри: ${error}`);
+        }
+    };
+
     const handleCloseSnackbar = (event, reason) => {
         if (reason === 'clickaway') {
             return;
@@ -79,17 +68,27 @@ const Rooms = () => {
     };
 
     return (
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
             <Box sx={{ p: 3 }}>
-                <Typography variant="h4" gutterBottom>Кімнати</Typography>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => setShowCreation(true)}
-                    sx={{ mb: 3 }}
-                >
-                    Додати кімнату
-                </Button>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Typography variant="h4">Кімнати</Typography>
+                    <Box>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => setShowCreation(true)}
+                            sx={{ mr: 2 }}
+                        >
+                            Додати кімнату
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={handleExportMeasurements}
+                        >
+                            Експорт
+                        </Button>
+                    </Box>
+                </Box>
                 {showCreation && (
                     <Box mt={3}>
                         <RoomCreationComponent
@@ -142,40 +141,7 @@ const Rooms = () => {
                         {successMessage}
                     </Alert>
                 </Snackbar>
-
-                <Grid container spacing={2} sx={{ mb: 3 }}>
-                    <Grid item>
-                        <DateTimePicker
-                            label="Від"
-                            value={timeFrom}
-                            onChange={setTimeFrom}
-                            renderInput={(params) => <TextField {...params} />}
-                        />
-                    </Grid>
-                    <Grid item>
-                        <DateTimePicker
-                            label="До"
-                            value={timeTo}
-                            onChange={setTimeTo}
-                            renderInput={(params) => <TextField {...params} />}
-                        />
-                    </Grid>
-                </Grid>
-
-                {statistics && (
-                    <Grid container spacing={3}>
-                        {statistics.map((stat, index) => (
-                            <Grid item xs={12} key={index}>
-                                <StatisticsCard
-                                    title={`Статистика для ${stat.device_id}`}
-                                    data={stat}
-                                />
-                            </Grid>
-                        ))}
-                    </Grid>
-                )}
             </Box>
-        </LocalizationProvider>
     );
 };
 

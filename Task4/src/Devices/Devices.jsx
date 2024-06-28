@@ -2,29 +2,50 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import axios from 'axios';
+import {deviceActions} from "../actions/deviceActions";
 
 const Devices = () => {
     const [devices, setDevices] = useState([]);
     const [openDialog, setOpenDialog] = useState(false);
     const [newDeviceMac, setNewDeviceMac] = useState('');
+    const [error, setError] = useState(null);
+    const { fetchDevices, addDevice, deleteDevice } = deviceActions();
+
+    useEffect(() => {
+        handleFetchDevices().catch(error => console.log(error));
+    }, []);
 
     const handleAddDevice = async () => {
         try {
-            await axios.post('/api/admin/devices', { mac_address: newDeviceMac });
-            setOpenDialog(false);
+            await addDevice(newDeviceMac);
+            await handleFetchDevices();
             setNewDeviceMac('');
+            setOpenDialog(false);
         } catch (error) {
+            setError(`Не вдалося додати пристрій: ${error}`);
             console.error('Помилка при додаванні:', error);
         }
     };
 
     const handleDeleteDevice = async (macAddress) => {
         try {
-            await axios.delete(`/api/admin/devices/${macAddress}`);
+            await deleteDevice(macAddress);
+            setDevices(devices.filter(device => device.mac_address !== macAddress))
         } catch (error) {
+            setError(`Не вдалося видалити пристрій: ${error}`);
             console.error('Помилка при видаленні:', error);
         }
     };
+
+    const handleFetchDevices = async () => {
+        try {
+            const fetchedDevices = await fetchDevices();
+            setDevices(fetchedDevices);
+        } catch (error) {
+            setError(`Не вдалося отримати пристрої: ${error}`);
+            console.error('Помилка при отриманні:', error);
+        }
+    }
 
     return (
         <Box sx={{ p: 3 }}>
@@ -43,7 +64,7 @@ const Devices = () => {
                     <ListItem key={device.mac_address}>
                         <ListItemText
                             primary={`MAC: ${device.mac_address}`}
-                            secondary={`Room ID: ${device.room_id || 'Not assigned'}`}
+                            secondary={`Room ID: ${device.room_id || 'Поки що не призначено кімнату'}`}
                         />
                         <ListItemSecondaryAction>
                             <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteDevice(device.mac_address)}>

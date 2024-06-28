@@ -31,6 +31,7 @@ const RoomDetails = () => {
     const [timeFrom, setTimeFrom] = useState(new Date());
     const [timeTo, setTimeTo] = useState(new Date());
     const [statistics, setStatistics] = useState(null);
+    const [loadingStatistics, setLoadingStatistics] = useState(false);
 
     const navigate = useNavigate();
     const { logout } = useAuth();
@@ -42,8 +43,6 @@ const RoomDetails = () => {
             setLoading(true);
             const devicesData = await fetchRoomDevices(id);
             setDevices(devicesData);
-            const statsResponse = await getRoomStatistics(id, timeFrom, timeTo)
-            setStatistics(statsResponse.data);
             setError(null);
         } catch (error) {
             console.error('Помилка при завантаженні кімнати:', error);
@@ -56,12 +55,40 @@ const RoomDetails = () => {
         } finally {
             setLoading(false);
         }
-    }, [id, fetchRoomDevices, logout, navigate, timeFrom, timeTo]);
+    }, [id, fetchRoomDevices, logout, navigate]);
 
     useEffect(() => {
         fetchRoomData();
     }, [id]);
 
+    const loadStatictics = async () => {
+        try {
+            setLoadingStatistics(true);
+            const response = await getRoomStatistics(id, timeFrom, timeTo);
+            const adaptedStats = response.statistics.map(stat => ({
+                ...stat,
+                avg_co2: stat.avg_co2,
+                median_co2: stat.median_co2,
+                co2_deviation: stat.co2_deviation,
+                avg_temperature: stat.avg_temperature,
+                median_temperature: stat.median_temperature,
+                temperature_deviation: stat.temperature_deviation,
+                avg_humidity: stat.avg_humidity,
+                median_humidity: stat.median_humidity,
+                humidity_deviation: stat.humidity_deviation,
+                avg_productivity: stat.avg_productivity,
+                median_productivity: stat.median_productivity,
+                productivity_deviation: stat.productivity_deviation
+            }));
+            setStatistics(adaptedStats);
+            setError(null);
+        } catch (error) {
+            console.error('Помилка при завантаженні статистики:', error);
+            setError('Помилка завантаження статистики. Спробуйте пізніше.');
+        } finally {
+            setLoadingStatistics(false);
+        }
+    };
     const handleOpenConfigDialog = async (deviceId) => {
         setCurrentDeviceId(deviceId);
         try {
@@ -243,8 +270,7 @@ const RoomDetails = () => {
                                 </Box>
                             </Box>
                             {device.measurements.length > 0 ? (
-                                <TableContainer component={Paper} sx={{ mt: 2 }}>
-                                    <Table size="small">
+                                <TableContainer component={Paper} sx={{ mt: 2, mb: 4 }}>                                    <Table size="small">
                                         <TableHead>
                                             <TableRow>
                                                 <TableCell>Час</TableCell>
@@ -306,24 +332,41 @@ const RoomDetails = () => {
                         {successMessage}
                     </Alert>
                 </Snackbar>
-                <Grid container spacing={2} sx={{ mb: 3 }}>
-                    <Grid item>
-                        <DateTimePicker
-                            label="Від"
-                            value={timeFrom}
-                            onChange={setTimeFrom}
-                            renderInput={(params) => <TextField {...params} />}
-                        />
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, mb: 3 }}>
+                    <Grid container spacing={2} justifyContent="center" alignItems="center">
+                        <Grid item>
+                            <DateTimePicker
+                                label="Від"
+                                value={timeFrom}
+                                onChange={setTimeFrom}
+                                renderInput={(params) => <TextField {...params} />}
+                            />
+                        </Grid>
+                        <Grid item>
+                            <DateTimePicker
+                                label="До"
+                                value={timeTo}
+                                onChange={setTimeTo}
+                                renderInput={(params) => <TextField {...params} />}
+                            />
+                        </Grid>
+                        <Grid item>
+                            <Button
+                                variant="contained"
+                                onClick={loadStatictics}
+                                disabled={loadingStatistics}
+                            >
+                                {loadingStatistics ? 'Завантаження...' : 'Отримати статистику'}
+                            </Button>
+                        </Grid>
                     </Grid>
-                    <Grid item>
-                        <DateTimePicker
-                            label="До"
-                            value={timeTo}
-                            onChange={setTimeTo}
-                            renderInput={(params) => <TextField {...params} />}
-                        />
-                    </Grid>
-                </Grid>
+                </Box>
+
+                {loadingStatistics && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                        <CircularProgress />
+                    </Box>
+                )}
 
                 {statistics && (
                     <Grid container spacing={3}>
@@ -332,9 +375,6 @@ const RoomDetails = () => {
                                 <StatisticsCard
                                     title={`Статистика для ${stat.device_id}`}
                                     data={stat}
-                                    avgKey="avg_co2"
-                                    medianKey="median_co2"
-                                    deviationKey="co2_deviation"
                                 />
                             </Grid>
                         ))}

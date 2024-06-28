@@ -51,3 +51,13 @@ def get_device_by_mac(db: Session, mac_address: str):
     if not device:
         raise ValueError(f"Пристрій з mac-адресою '{mac_address}' не знайдено")
     return DeviceRead.from_orm(device)
+
+
+def get_all_devices(db: Session):
+    devices = db.query(Device).options(
+        joinedload(Device.measurements),
+        joinedload(Device.configs)
+    ).all()
+    if not devices:
+        raise ValueError("Пристроїв не існує")
+    return [DeviceRead.from_orm(device) for device in devices]

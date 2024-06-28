@@ -9,7 +9,6 @@ from sсhemas.room import RoomCreate, RoomRead
 
 
 def create_room(db: Session, room: RoomCreate):
-
     existing_room = db.query(Room).filter(Room.name == room.name).first()
     if existing_room:
         raise HTTPException(400, f"Кімната з назвою '{room.name}' вже існує")

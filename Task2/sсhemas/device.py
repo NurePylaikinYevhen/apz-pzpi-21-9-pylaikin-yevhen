@@ -27,7 +27,7 @@ class ConfigRead(BaseModel):
 class DeviceRead(BaseModel):
     id: int
     mac_address: str
-    room_id: Optional[int]
+    room_id: Optional[int] = None
     measurements: List[MeasurementRead] = []
     configs: List[ConfigRead] = []
 

@@ -3,8 +3,9 @@ import traceback
 from datetime import datetime
 from typing import List, Optional, Union, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query, Body, Header, Request
 from fastapi.responses import Response
+
 from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -27,7 +28,7 @@ from logger import logger
 
 from models.user import User
 
-from auth import get_current_manager_or_admin, get_current_user, get_current_admin
+from auth import get_current_manager_or_admin, get_current_admin
 
 from sсhemas.user import UserRead, ChangeRoleInput
 
@@ -40,9 +41,16 @@ def create_room(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_admin)):
     try:
-        room_service.create_room(db, room)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        new_room = room_service.create_room(db, room)
+        return RoomRead(
+            id=new_room.id,
+            name=new_room.name,
+            devices=[DeviceRead(id=d.id, mac_address=d.mac_address) for d in new_room.devices]
+        )
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @administration_router.delete("/rooms/{room_id}")
@@ -86,6 +94,17 @@ def get_device(
         current_user: User = Depends(get_current_admin)):
     try:
         return device_service.get_device_by_mac(db, mac_address)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@administration_router.get("/devices", response_model=List[DeviceRead])
+def get_all_devices(
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_manager_or_admin)
+):
+    try:
+        return device_service.get_all_devices(db)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -146,6 +165,36 @@ def export_config(
         media_type="application/json",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+@administration_router.get("/device/config")
+async def export_device_config(
+        request: Request,
+        db: Session = Depends(get_db)
+):
+    mac_address = request.headers.get("mac_address")
+    if not mac_address:
+        raise HTTPException(status_code=400, detail="MAC-адреса не вказана в заголовку")
+
+    device = device_service.get_device_by_mac(db, mac_address)
+    if not device:
+        raise HTTPException(status_code=404, detail="Пристрій з вказаним MAC-адресом не знайдено")
+
+    try:
+        config_data = config_service.export_config(db, device.id)
+        if not config_data:
+            raise HTTPException(status_code=404, detail="Конфігурацію не знайдено")
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"config_device_{device.id}_{timestamp}.json"
+
+        return Response(
+            content=json.dumps(config_data, cls=CustomJSONEncoder, indent=2, ensure_ascii=False),
+            media_type="application/json",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Помилка при експорті конфігурації пристрою")
 
 
 @administration_router.put("/config/{device_id}")

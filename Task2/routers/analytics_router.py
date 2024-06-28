@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 
-from services import analytics_service
+from services import analytics_service, device_service
 from sqlalchemy.orm import Session
 from starlette.responses import FileResponse
 
@@ -16,8 +16,12 @@ analytics_router = APIRouter(tags=["analytics"], prefix="/analytics")
 @analytics_router.post("/predict")
 def predict_productivity(input_data: PredictionInput, db: Session = Depends(get_db)):
     try:
+        device = device_service.get_device_by_mac(db, input_data.mac_address)
+        if not device:
+            raise HTTPException(status_code=404, detail=f"Пристрій з MAC-адресом {input_data.mac_address} не знайдено")
+
         prediction, recommendations = analytics_service.calculate_prediction(
-            db, input_data.device_id, input_data.Temperature, input_data.Humidity, input_data.CO2
+            db, device.id, input_data.Temperature, input_data.Humidity, input_data.CO2
         )
         return {"prediction": prediction, "recommendations": recommendations}
     except Exception as e:

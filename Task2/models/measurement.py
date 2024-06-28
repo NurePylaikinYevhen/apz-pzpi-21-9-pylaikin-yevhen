@@ -13,4 +13,5 @@ class Measurement(Base):
     temperature = Column(Float)
     humidity = Column(Float)
     co2 = Column(Float)
+    productivity = Column(Integer, nullable=True)
     device = relationship("Device", back_populates="measurements")

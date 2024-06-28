@@ -9,6 +9,7 @@ from passlib.context import CryptContext
 from models.user import User
 from get_db import get_db
 from Constants import JWT_SECRET_KEY, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from logger import logger
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
